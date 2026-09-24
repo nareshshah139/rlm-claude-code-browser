@@ -1,6 +1,6 @@
 [project]
 name = "rlm-claude-code"
-version = "0.7.4"
+version = "0.8.0"
 description = "Recursive Language Model integration for Claude Code"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -18,6 +18,8 @@ dependencies = [
     "pandas>=2.0.0",  # Data manipulation and analysis
     "polars>=1.0.0",  # Fast DataFrame library
     "seaborn>=0.13.0",  # Statistical data visualization
+    "httpx>=0.27",  # Parallel HTTP lane of the browser-use layer
+    "playwright>=1.45",  # Headless + CDP lanes (run `playwright install chromium` once)
 ]
 
 [project.optional-dependencies]

@@ -54,6 +54,13 @@ MICRO_MODE_BLOCKED = frozenset(
         "evidence_dependence",  # Uses LLM for consistency checking
         "audit_reasoning",  # Uses LLM for reasoning trace verification
         "detect_hallucinations",  # Uses LLM for claim extraction and verification
+        # Browser-use lane (web_tools.py): network access is never micro-mode
+        "fetch_pages",
+        "browse",
+        "crawl",
+        "ingest_page",
+        "queue_for_chrome",
+        "web_status",
     }
 )
 
@@ -341,6 +348,24 @@ class RLMEnvironment:
             self.globals["evidence_dependence"] = self._evidence_dependence
             self.globals["audit_reasoning"] = self._audit_reasoning
             self.globals["detect_hallucinations"] = self._detect_hallucinations
+            # Browser-use lane: parallel HTTP, headless Chromium, and CDP to the
+            # user's logged-in Chrome (see src/web_tools.py). Opt out: RLM_BROWSER=0
+            self._add_web_functions()
+
+    def _add_web_functions(self) -> None:
+        """Bind fetch_pages/browse/crawl/ingest_page and the web/web_meta dicts."""
+        from .web_tools import BrowserConfig, WebToolkit, bind_to_repl
+
+        config = BrowserConfig.from_env()
+        if not config.enabled:
+            return
+        bind_to_repl(self, WebToolkit(config))
+
+    def close_web(self) -> None:
+        """Shut down any browser the web lane started."""
+        kit = getattr(self, "_web_toolkit", None)
+        if kit is not None:
+            kit.close()
 
     def _summarize_local(self, var: Any, max_chars: int = 500) -> str:
         """
@@ -1044,6 +1069,8 @@ class RLMEnvironment:
             helpers.extend(
                 ["verify_claim", "evidence_dependence", "audit_reasoning", "detect_hallucinations"]
             )
+            if "fetch_pages" in self.globals:
+                helpers.extend(["fetch_pages", "browse", "crawl", "ingest_page"])
 
         return helpers
 

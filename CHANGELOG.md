@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0] - 2026-09-24
+
+### Added
+- Browser-use lane (`src/web_tools.py`): parallel HTTP fetch, parallel headless Chromium
+  fallback for JavaScript-only / bot-blocked pages, and CDP attach to the user's logged-in
+  Chrome for pages behind a login. Remaining pages go to a `chrome_queue` for the agent's own
+  browser tools and come back through `ingest_page`.
+- REPL functions `fetch_pages`, `crawl`, `browse`, `ingest_page`, `queue_for_chrome`,
+  `web_status`, and the `web` / `web_meta` context dicts (blocked in micro mode).
+- `scripts/rlm-web` CLI (`src/web_cli.py`) and the `/rlm-claude-code:web` command.
+- `--files-dir` for `python -m src.orchestrator` to run the REPL orchestrator over a web run.
+- URL policy: http(s) only, private/loopback/link-local refused by default, domain allow/deny
+  lists, per-call page caps.
+- 33 tests in `tests/unit/test_web_tools.py`.
+
 ## [0.7.4] - 2026-02-20
 
 ### Fixed

@@ -1,4 +1,9 @@
-# RLM-Claude-Code
+# RLM-Claude-Code + Browser Use
+
+> Fork of [rand/rlm-claude-code](https://github.com/rand/rlm-claude-code) (MIT) that adds a
+> **browser-use lane**: RLM tasks can pull their context from live web pages - fetched in
+> parallel, rendered in headless Chromium when needed, and read through your own logged-in
+> Chrome only for the pages that require it. See [Browser Use](#browser-use-v080).
 
 Transform Claude Code into a Recursive Language Model (RLM) agent with intelligent orchestration, unbounded context handling, persistent memory, and REPL-based decomposition.
 
@@ -15,6 +20,104 @@ RLM (Recursive Language Model) enables Claude to handle arbitrarily large contex
 - **Remember** facts and experiences across sessions
 
 This results in better accuracy on complex tasks while optimizing cost through intelligent model selection.
+
+---
+
+## Browser Use (v0.8.0)
+
+Driving a real browser one page at a time is the slow part of any web task. This fork
+splits web access into three lanes and only falls through to the slower one when needed:
+
+| Lane | What it is | When it is used | Speed |
+|---|---|---|---|
+| `http` | Parallel async HTTP (httpx) | Every URL, first | ~0.2-2 s per page, all at once |
+| `headless` | Parallel headless Chromium (Playwright), one isolated context per page | Pages that come back empty, JavaScript-only or bot-blocked (403) | ~2-7 s per page, 8 at a time |
+| `cdp` | Your own Chrome over the DevTools protocol, background tabs | Pages that need your login, when `RLM_BROWSER_CDP_URL` is set | parallel tabs, uses your cookies |
+| `chrome_queue` | Claude's own browser tools (Claude in Chrome / Playwright MCP) | Whatever is left (SSO, CAPTCHA, no CDP) - one at a time, supervised | slow, last resort |
+
+Fetched text lands in `web[url]` (and on disk as markdown), ready for the usual RLM moves:
+`search`, `map_reduce`, `llm_batch`, sub-agents.
+
+### From Claude Code
+
+```
+/rlm-claude-code:web Compare how Qdrant, Weaviate and Milvus do hybrid search: <urls...>
+```
+
+The command fetches in parallel, retries the hard pages headless, works any login-only pages
+through your browser, then fans the analysis out to parallel sub-agents and cites every claim.
+Under the hood it calls `scripts/rlm-web`:
+
+```bash
+scripts/rlm-web --out .rlm/web/run fetch URL [URL ...]         # or --urls-file urls.txt
+scripts/rlm-web --out .rlm/web/run crawl https://docs.x.com --max-pages 40 --match /guide/
+scripts/rlm-web --out .rlm/web/run browse https://site/search \
+    --steps '[{"fill":["#q","rlm"]},{"press":["#q","Enter"]},{"wait":".results"}]'
+scripts/rlm-web --out .rlm/web/run ingest URL --text-file page.txt   # text from your browser
+scripts/rlm-web --out .rlm/web/run show
+```
+
+Each run directory has one `.md` per page, `index.json` (status, lane, timing, errors) and
+`chrome_queue.json` (pages that still need your browser).
+
+### In the RLM REPL
+
+```python
+fetch_pages(["https://a.com/x", "https://b.com/y"])          # returns status per URL
+crawl("https://docs.x.com", max_pages=30, match="/api/")
+browse(url, steps=[{"click": "#load-more"}, {"wait": ".item"}, {"extract": ".item"}])
+findings = llm_batch([("Key claims with quotes?", web[u]) for u in web])
+ingest_page(url, text)        # hand back text captured by another browser
+web_status()                  # counts by lane + pending chrome_queue
+```
+
+Steps for `browse`: `click`, `fill`, `press`, `select`, `wait` (selector or ms), `scroll`,
+`goto`, `extract`. Web functions are not available in `micro` access mode.
+
+### Logged-in pages in parallel (optional)
+
+Start Chrome with remote debugging on a profile you are signed into, then point the plugin at it:
+
+```bash
+# macOS example
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port=9222 --user-data-dir="$HOME/.rlm-chrome"
+export RLM_BROWSER_CDP_URL=http://127.0.0.1:9222
+```
+
+Public pages still go through `http`/`headless`; only pages that hit a login wall are opened -
+as background tabs, in parallel - in that Chrome. Use a dedicated profile: anything reachable
+from it is reachable by the agent.
+
+### Settings
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RLM_BROWSER` | `1` | `0` removes the web functions entirely |
+| `RLM_BROWSER_CONCURRENCY` | `8` | pages in flight per lane |
+| `RLM_BROWSER_RENDER` | `auto` | `never` = HTTP only, `always` = headless for everything |
+| `RLM_BROWSER_TIMEOUT` | `20` | seconds per page |
+| `RLM_BROWSER_MAX_PAGES` | `200` | cap per call |
+| `RLM_BROWSER_MAX_CHARS` | `200000` | text kept per page |
+| `RLM_BROWSER_CDP_URL` | unset | your Chrome's DevTools URL |
+| `RLM_BROWSER_ALLOWED_DOMAINS` / `RLM_BROWSER_BLOCKED_DOMAINS` | unset | comma-separated host lists |
+| `RLM_BROWSER_ALLOW_PRIVATE` | `0` | allow localhost / private IPs (refused by default) |
+| `RLM_BROWSER_EXECUTABLE` | unset | Chromium binary to use instead of Playwright's |
+
+Safety: http(s) only; private, loopback and link-local addresses are refused by default
+(no SSRF into your network or cloud metadata); page text is treated as data, never as
+instructions; login walls are never filled in by the agent.
+
+### Tested
+
+- `tests/unit/test_web_tools.py` (33 tests) runs a local site with static, JavaScript-only,
+  403, cookie-gated and interactive pages, and checks each lane - including a real Chromium
+  with a session cookie reached over CDP, parallel-vs-serial timing, crawling limits, the
+  URL policy, the REPL bindings (`fetch_pages` -> `search` -> `llm_batch`) and the CLI.
+- Full upstream suite still passes (3,300+ tests).
+- End to end: `/rlm-claude-code:web` in headless Claude Code compared 8 vector-database docs
+  pages - 8 fetched over `http`, 2 JS/bot-blocked pages recovered by `headless`, a dead link
+  detected and replaced - and returned a cited comparison.
 
 ---
 
@@ -78,6 +181,9 @@ uv venv && uv sync
 
 # Verify rlm-core is available
 "$PLUGIN_DIR/.venv/bin/python" -c "import rlm_core; print('rlm_core OK:', rlm_core.version())"
+
+# Browser lane: download Chromium for Playwright (one time)
+"$PLUGIN_DIR/.venv/bin/python" -m playwright install chromium
 ```
 
 #### Step 3: Verify Installation

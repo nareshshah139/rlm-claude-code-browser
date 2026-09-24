@@ -199,6 +199,10 @@ SPEC implementations:
 | `memory_query(query)` | Search memory |
 | `memory_add_fact(content, conf)` | Store fact |
 | `memory_add_experience(...)` | Store experience |
+| `fetch_pages(urls, render=)` | Parallel web fetch -> `web[url]` (http, headless, CDP lanes) |
+| `crawl(start, max_pages=)` | Parallel breadth-first crawl |
+| `browse(url, steps=)` | Scripted click/fill/wait in headless Chromium |
+| `ingest_page(url, text)` | Add text captured by the agent's own browser |
 
 ## REPL Libraries
 
@@ -244,6 +248,7 @@ SPEC implementations:
 | `/rlm status` | Show configuration |
 | `/rlm mode <fast\|balanced\|thorough>` | Set mode |
 | `/rlm-orchestrator` | Launch RLM agent for complex context tasks |
+| `/rlm-claude-code:web <task>` | RLM over live web pages |
 | `/simple` | Bypass RLM once |
 | `/trajectory <file>` | Analyze trajectory |
 | `/test` | Run tests |

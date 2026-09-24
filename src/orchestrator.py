@@ -972,6 +972,11 @@ async def main():
     )
     parser.add_argument("--export-trajectory", help="Path to export trajectory JSON")
     parser.add_argument("--api-key", help="Anthropic API key (or set ANTHROPIC_API_KEY)")
+    parser.add_argument(
+        "--files-dir",
+        help="Load *.md/*.txt from this directory as context files instead of src/ "
+        "(e.g. a web run directory written by scripts/rlm-web)",
+    )
     args = parser.parse_args()
 
     # Check for API key
@@ -984,9 +989,10 @@ async def main():
 
     # Create context with actual project files for CLI testing
     files = {}
-    src_dir = os.path.dirname(os.path.abspath(__file__))
-    for filename in os.listdir(src_dir):
-        if filename.endswith(".py"):
+    src_dir = args.files_dir or os.path.dirname(os.path.abspath(__file__))
+    wanted = (".md", ".txt", ".json") if args.files_dir else (".py",)
+    for filename in sorted(os.listdir(src_dir)):
+        if filename.endswith(wanted):
             filepath = os.path.join(src_dir, filename)
             try:
                 with open(filepath) as f:

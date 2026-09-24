@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Wrapper for the RLM browser-use lane: runs src/web_cli.py with the plugin's venv.
+# Usage: rlm-web [--out DIR] fetch|crawl|browse|ingest|show ...
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PY="$ROOT/.venv/bin/python"
+[ -x "$PY" ] || PY="$(command -v python3)"
+# Run from the caller's directory so relative --out paths land in the user's project.
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PY" -m src.web_cli "$@"

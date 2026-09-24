@@ -68,7 +68,7 @@ To interact with context, output Python code in ```python blocks. The code will 
    ```python
    working_memory['analysis'] = result
    ```
-
+{_web_section()}
 ## Current Query
 {query}
 
@@ -84,6 +84,26 @@ To interact with context, output Python code in ```python blocks. The code will 
 Think through the problem, then either:
 1. Output ```python code to execute in REPL
 2. Output FINAL: <answer> when you have the complete answer"""
+
+
+def _web_section() -> str:
+    """REPL docs for the browser-use lane (empty when RLM_BROWSER=0)."""
+    import os
+
+    if os.environ.get("RLM_BROWSER", "1").strip().lower() in {"0", "false", "no", "off"}:
+        return ""
+    return """
+6. **Web**: Pull live pages into context (parallel; text lands in `web[url]`)
+   ```python
+   fetch_pages(["https://a.com/x", "https://b.com/y"])   # HTTP, auto-falls back to headless Chromium
+   fetch_pages(urls, render=True)                       # force JS rendering
+   crawl("https://docs.x.com", max_pages=30, match="/api/")
+   browse(url, steps=[{"fill": ["#q", "rlm"]}, {"press": ["#q", "Enter"]}, {"wait": ".results"}])
+   answers = llm_batch([("Key claims?", web[u]) for u in web])  # recurse over pages
+   ```
+   Pages that need the user's login are listed in `working_memory['chrome_queue']`;
+   leave them for the agent's own browser (they come back via `ingest_page`).
+"""
 
 
 def build_recursive_prompt(query: str, context_chunk: str) -> str:
