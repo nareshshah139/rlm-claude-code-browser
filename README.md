@@ -49,12 +49,12 @@ through your browser, then fans the analysis out to parallel sub-agents and cite
 Under the hood it calls `scripts/rlm-web`:
 
 ```bash
-scripts/rlm-web --out .rlm/web/run fetch URL [URL ...]         # or --urls-file urls.txt
-scripts/rlm-web --out .rlm/web/run crawl https://docs.x.com --max-pages 40 --match /guide/
-scripts/rlm-web --out .rlm/web/run browse https://site/search \
+bash scripts/rlm-web --out .rlm/web/run fetch URL [URL ...]         # or --urls-file urls.txt
+bash scripts/rlm-web --out .rlm/web/run crawl https://docs.x.com --max-pages 40 --match /guide/
+bash scripts/rlm-web --out .rlm/web/run browse https://site/search \
     --steps '[{"fill":["#q","rlm"]},{"press":["#q","Enter"]},{"wait":".results"}]'
-scripts/rlm-web --out .rlm/web/run ingest URL --text-file page.txt   # text from your browser
-scripts/rlm-web --out .rlm/web/run show
+bash scripts/rlm-web --out .rlm/web/run ingest URL --text-file page.txt   # text from your browser
+bash scripts/rlm-web --out .rlm/web/run show
 ```
 
 Each run directory has one `.md` per page, `index.json` (status, lane, timing, errors) and
@@ -161,10 +161,10 @@ uv run pytest tests/ -v
 
 ```bash
 # Add the marketplace (one-time setup)
-claude plugin marketplace add github:rand/rlm-claude-code
+claude plugin marketplace add github:nareshshah139/rlm-claude-code-browser
 
 # Install the plugin
-claude plugin install rlm-claude-code@rlm-claude-code
+claude plugin install rlm-claude-code@rlm-claude-code-browser
 ```
 
 #### Step 2: Set Up the Plugin Environment
@@ -173,7 +173,7 @@ The plugin includes rlm-core (bundled via maturin). After installation:
 
 ```bash
 # Navigate to the plugin directory (adjust version number as needed)
-PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/ | sort -V | tail -1)
+PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/ | sort -V | tail -1)
 cd "$PLUGIN_DIR"
 
 # Create venv and install (includes rlm-core)
@@ -192,7 +192,7 @@ Restart Claude Code. You should see "RLM initialized" on startup.
 
 Test the hooks manually:
 ```bash
-PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/ | sort -V | tail -1)
+PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/ | sort -V | tail -1)
 "$PLUGIN_DIR/.venv/bin/python" "$PLUGIN_DIR/scripts/init_rlm.py"
 # Should print: RLM initialized
 ```
@@ -202,10 +202,10 @@ PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/$(ls ~/.claud
 When updating, you'll need to re-create the venv:
 
 ```bash
-claude plugin update rlm-claude-code@rlm-claude-code
+claude plugin update rlm-claude-code@rlm-claude-code-browser
 
 # Re-setup the new version
-PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code/rlm-claude-code/ | sort -V | tail -1)
+PLUGIN_DIR=~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/$(ls ~/.claude/plugins/cache/rlm-claude-code-browser/rlm-claude-code/ | sort -V | tail -1)
 cd "$PLUGIN_DIR" && uv venv && uv sync
 
 # rlm-core is bundled — no extra linking needed
@@ -623,7 +623,7 @@ Check hooks are correctly registered:
 cat ~/.claude/settings.json | jq '.hooks.SessionStart'
 
 # Verify paths point to current version
-cat ~/.claude/plugins/installed_plugins.json | jq '.plugins["rlm-claude-code@rlm-claude-code"][0].version'
+cat ~/.claude/plugins/installed_plugins.json | jq '.plugins["rlm-claude-code@rlm-claude-code-browser"][0].version'
 ```
 
 If hook paths don't match the installed version, re-run the merge script.

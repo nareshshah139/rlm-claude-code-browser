@@ -15,7 +15,7 @@ to the user's browser, then run the recursive analysis over the saved text.
 
 ## Paths
 
-- Wrapper: `${CLAUDE_PLUGIN_ROOT}/scripts/rlm-web` (if the variable is empty, find it with
+- Wrapper: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/rlm-web` (if the variable is empty, find it with
   `ls ~/.claude/plugins/cache/*/rlm-claude-code/*/scripts/rlm-web | tail -1`)
 - Run directory: `.rlm/web/<short-task-slug>` in the current project. Pass it with `--out`
   (it goes **before** the subcommand).
@@ -30,12 +30,12 @@ to the user's browser, then run the recursive analysis over the saved text.
 ## Step 2 - Fetch in parallel (fast lane)
 
 ```bash
-RLM_WEB="${CLAUDE_PLUGIN_ROOT}/scripts/rlm-web"
-"$RLM_WEB" --out .rlm/web/<slug> fetch --urls-file .rlm/web/<slug>/urls.txt
+RLM_WEB="bash ${CLAUDE_PLUGIN_ROOT}/scripts/rlm-web"
+$RLM_WEB --out .rlm/web/<slug> fetch --urls-file .rlm/web/<slug>/urls.txt
 # or
-"$RLM_WEB" --out .rlm/web/<slug> crawl https://docs.example.com --max-pages 40 --match "/guide/"
+$RLM_WEB --out .rlm/web/<slug> crawl https://docs.example.com --max-pages 40 --match "/guide/"
 # a page that needs clicking/typing first (runs in headless Chromium):
-"$RLM_WEB" --out .rlm/web/<slug> browse https://site/search \
+$RLM_WEB --out .rlm/web/<slug> browse https://site/search \
   --steps '[{"fill":["input[name=q]","rlm"]},{"press":["input[name=q]","Enter"]},{"wait":".results"}]'
 ```
 
@@ -56,14 +56,14 @@ For each URL in `<run>/chrome_queue.json`, one at a time:
    the user to sign in, then continue.
 2. Save the text and hand it back:
    ```bash
-   "$RLM_WEB" --out .rlm/web/<slug> ingest "<url>" --text-file /tmp/page.txt --title "<title>"
+   $RLM_WEB --out .rlm/web/<slug> ingest "<url>" --text-file /tmp/page.txt --title "<title>"
    ```
 
 If no browser tools are available, tell the user which URLs were skipped and continue.
 
 ## Step 4 - Recursive analysis
 
-`"$RLM_WEB" --out .rlm/web/<slug> show` lists what you have. Then decompose:
+`$RLM_WEB --out .rlm/web/<slug> show` lists what you have. Then decompose:
 
 - **Few pages (total < ~60K tokens):** read the `.md` files directly and answer.
 - **Many pages:** partition the `.md` files into groups of ~20-40K tokens and launch one
