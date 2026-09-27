@@ -370,10 +370,10 @@ class TestRecursiveREPLPromptBuilding:
         prompt = repl._build_sub_prompt("Query", "my context data")
         assert "my context data" in prompt
 
-    def test_build_sub_prompt_truncates_large_context(
+    def test_build_sub_prompt_preserves_large_context(
         self, basic_context, mock_router, basic_config
     ):
-        """Sub-prompt truncates very large context."""
+        """Direct prompt serialization must not silently lose source text."""
         repl = RecursiveREPL(
             context=basic_context,
             config=basic_config,
@@ -383,8 +383,8 @@ class TestRecursiveREPLPromptBuilding:
         large_context = "x" * 20000
         prompt = repl._build_sub_prompt("Query", large_context)
 
-        assert "[truncated" in prompt
-        assert "20000 chars total" in prompt
+        assert large_context in prompt
+        assert "[truncated" not in prompt
 
     def test_build_rlm_prompt_includes_instructions(self, basic_context, mock_router, basic_config):
         """RLM prompt includes REPL instructions."""

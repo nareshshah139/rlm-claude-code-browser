@@ -1182,8 +1182,6 @@ class RLMEnvironment:
         op_id = f"sum_{self._operation_counter}"
 
         content = str(var)
-        if len(content) > max_tokens * 4:
-            content = content[: max_tokens * 4] + "..."
 
         op = DeferredOperation(
             operation_id=op_id,
@@ -1218,7 +1216,7 @@ class RLMEnvironment:
         op_id = f"rq_{self._operation_counter}"
 
         # Convert context to string if not None
-        context_str = str(context)[:8000] if context is not None else ""
+        context_str = str(context) if context is not None else ""
 
         op = DeferredOperation(
             operation_id=op_id,
@@ -1262,7 +1260,7 @@ class RLMEnvironment:
         for query, context in queries:
             self._operation_counter += 1
             op_id = f"rq_{self._operation_counter}"
-            context_str = str(context)[:8000] if context is not None else ""
+            context_str = str(context) if context is not None else ""
 
             op = DeferredOperation(
                 operation_id=op_id,

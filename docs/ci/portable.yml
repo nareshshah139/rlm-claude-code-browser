@@ -1,0 +1,33 @@
+name: Portable context workflow
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  portable:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Offline workflow and installation contracts
+        run: python -m unittest discover -s tests/portable -v
+      - name: Check optional HTTP acquisition
+        run: |
+          python -m pip install httpx
+          python -m unittest discover -s tests/portable -p test_web_acquisition.py -v
+      - name: Build portable packages
+        run: python scripts/build_portable.py --out dist/portable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ matrix.os }}-${{ matrix.python }}
+          path: dist/portable/*.zip

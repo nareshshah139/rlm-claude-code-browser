@@ -1,7 +1,7 @@
 {
   "name": "rlm-claude-code",
-  "description": "Recursive Language Model integration for Claude Code with a browser-use lane (parallel fetch, headless Chromium, CDP to your logged-in Chrome). Fork of rand/rlm-claude-code.",
-  "version": "0.8.0",
+  "description": "Portable RLM context workflow for Claude Code and Cowork, with native agents, lossless source chunks, checked coverage and optional browser acquisition.",
+  "version": "0.9.0",
   "author": {
     "name": "Rand (upstream), Naresh Shah (browser lane)",
     "url": "https://github.com/nareshshah139/rlm-claude-code-browser"

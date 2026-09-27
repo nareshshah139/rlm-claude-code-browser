@@ -38,6 +38,7 @@ from ..prompts import build_rlm_system_prompt
 from ..recursive_handler import RecursiveREPL
 from ..repl_environment import RLMEnvironment
 from ..response_parser import ResponseAction, ResponseParser
+from ..router_integration import ModelRouter
 from ..smart_router import SmartRouter
 from ..state_persistence import StatePersistence
 from ..trajectory import (
@@ -45,6 +46,7 @@ from ..trajectory import (
     TrajectoryEvent,
     TrajectoryEventType,
     TrajectoryRenderer,
+    TrajectoryStream,
 )
 from ..types import DeferredOperation, SessionContext
 
@@ -85,7 +87,6 @@ class Checkpoint:
     messages: list[dict[str, str]]
     partial_results: list[str]
     repl_state: dict[str, Any]
-
 
 
 @dataclass
@@ -246,7 +247,10 @@ class RLMOrchestrator:
             TrajectoryEvents and final response
         """
         # Check if RLM should activate
-        should_activate, self.activation_reason = should_activate_rlm(query, context)
+        if self.config.activation.mode == "always":
+            should_activate, self.activation_reason = True, "explicit activation"
+        else:
+            should_activate, self.activation_reason = should_activate_rlm(query, context)
 
         if not should_activate:
             # Bypass RLM, return direct
@@ -305,12 +309,16 @@ class RLMOrchestrator:
             self._persistence.init_session(session_id)
             self._persistence.update_rlm_active(True)
 
+        # Recursive callbacks use the synchronous adapter over the same event stream.
+        recursive_trajectory = TrajectoryStream()
+        recursive_trajectory.streaming_trajectory = trajectory
         # Initialize RecursiveREPL for depth management and cost tracking
         recursive_handler = RecursiveREPL(
             context=context,
             depth=0,
             config=self.config,
-            trajectory=trajectory,
+            router=ModelRouter(self.config, client=client),
+            trajectory=recursive_trajectory,
         )
 
         # Initialize REPL environment with recursive handler
@@ -435,7 +443,9 @@ class RLMOrchestrator:
                         state.final_answer = self._final_answer_from_submit(submit_result)
                     else:
                         repl_result = (
-                            exec_result.output if exec_result.success else f"Error: {exec_result.error}"
+                            exec_result.output
+                            if exec_result.success
+                            else f"Error: {exec_result.error}"
                         )
 
                     # Process any deferred async operations
@@ -751,7 +761,7 @@ class RLMOrchestrator:
     async def _process_deferred_operations(
         self,
         repl: RLMEnvironment,
-        client: ClaudeClient,
+        client: ClaudeClient | None,
         depth: int,
         trajectory: StreamingTrajectory,
         recursive_handler: RecursiveREPL | None = None,
@@ -814,16 +824,22 @@ class RLMOrchestrator:
                                 context=op.context,
                                 spawn_repl=op.spawn_repl,
                             )
-                        else:
+                        elif client is not None:
                             result = await client.recursive_query(op.query, op.context)
+                        else:
+                            raise ValueError("A client or recursive handler is required")
                         return op.operation_id, result, {"status": "success", "attempts": attempt}
                     except Exception as e:
                         if attempt >= max_attempts:
-                            return op.operation_id, f"[Error: {e}]", {
-                                "status": "error",
-                                "attempts": attempt,
-                                "error": str(e),
-                            }
+                            return (
+                                op.operation_id,
+                                f"[Error: {e}]",
+                                {
+                                    "status": "error",
+                                    "attempts": attempt,
+                                    "error": str(e),
+                                },
+                            )
                         await asyncio.sleep(retry_backoff_s * attempt)
             raise RuntimeError(f"Unreachable: max_attempts={max_attempts}")
 
@@ -898,7 +914,9 @@ class RLMOrchestrator:
                         continue
 
                     raw_keyword = candidate.get("keyword_score", 0.0)
-                    keyword_score = float(raw_keyword) if isinstance(raw_keyword, (int, float)) else 0.0
+                    keyword_score = (
+                        float(raw_keyword) if isinstance(raw_keyword, (int, float)) else 0.0
+                    )
                     llm_score = self._extract_relevance_score(result_map.get(op_id))
                     combined = self._clamp_unit_score(0.7 * llm_score + 0.3 * keyword_score)
                     reranked.append((chunk, round(combined, 6)))

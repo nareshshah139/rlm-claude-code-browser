@@ -1,55 +1,31 @@
-"""
-Modular orchestrator package.
+"Modular orchestrator package.\n\nImplements: SPEC-12.01-12.07\n\nThis package provides the modular orchestrator architecture:\n- core: Base RLM orchestration loop\n- intelligent: Claude-powered decision making\n- async_executor: Parallel and speculative execution\n- checkpointing: Session persistence\n- steering: User interaction support\n\nAll public classes are re-exported here for backward compatibility."
 
-Implements: SPEC-12.01-12.07
+from importlib import import_module
 
-This package provides the modular orchestrator architecture:
-- core: Base RLM orchestration loop
-- intelligent: Claude-powered decision making
-- async_executor: Parallel and speculative execution
-- checkpointing: Session persistence
-- steering: User interaction support
-
-All public classes are re-exported here for backward compatibility.
-"""
-
-# Core orchestration (SPEC-12.02)
-# Async execution (SPEC-12.04)
-from .async_executor import (
-    AsyncExecutor,
-    AsyncRLMOrchestrator,
-    BudgetChecker,
-    ExecutionResult,
-    PartialFailureResult,
-    SpeculativeExecution,
-    SpeculativeResult,
-)
-
-# Checkpointing (SPEC-12.05)
-from .checkpointing import (
-    CheckpointingOrchestrator,
-    RLMCheckpoint,
-)
-from .core import OrchestrationState, RLMOrchestrator
-
-# Intelligent orchestration (SPEC-12.03)
-from .intelligent import (
-    ORCHESTRATOR_SYSTEM_PROMPT,
-    IntelligentOrchestrator,
-    OrchestratorConfig,
-    create_orchestration_plan,
-)
-
-# Steering (SPEC-12.06, SPEC-11.10-11.16)
-from .steering import (
-    AutoSteeringPolicy,
-    InteractiveOrchestrator,
-    SteeringCallback,
-    SteeringDecision,
-    SteeringPoint,
-    SteeringPointType,
-    SteeringResponse,
-)
+_EXPORTS = {
+    "AsyncExecutor": ("async_executor", "AsyncExecutor"),
+    "AsyncRLMOrchestrator": ("async_executor", "AsyncRLMOrchestrator"),
+    "BudgetChecker": ("async_executor", "BudgetChecker"),
+    "ExecutionResult": ("async_executor", "ExecutionResult"),
+    "PartialFailureResult": ("async_executor", "PartialFailureResult"),
+    "SpeculativeExecution": ("async_executor", "SpeculativeExecution"),
+    "SpeculativeResult": ("async_executor", "SpeculativeResult"),
+    "CheckpointingOrchestrator": ("checkpointing", "CheckpointingOrchestrator"),
+    "RLMCheckpoint": ("checkpointing", "RLMCheckpoint"),
+    "OrchestrationState": ("core", "OrchestrationState"),
+    "RLMOrchestrator": ("core", "RLMOrchestrator"),
+    "ORCHESTRATOR_SYSTEM_PROMPT": ("intelligent", "ORCHESTRATOR_SYSTEM_PROMPT"),
+    "IntelligentOrchestrator": ("intelligent", "IntelligentOrchestrator"),
+    "OrchestratorConfig": ("intelligent", "OrchestratorConfig"),
+    "create_orchestration_plan": ("intelligent", "create_orchestration_plan"),
+    "AutoSteeringPolicy": ("steering", "AutoSteeringPolicy"),
+    "InteractiveOrchestrator": ("steering", "InteractiveOrchestrator"),
+    "SteeringCallback": ("steering", "SteeringCallback"),
+    "SteeringDecision": ("steering", "SteeringDecision"),
+    "SteeringPoint": ("steering", "SteeringPoint"),
+    "SteeringPointType": ("steering", "SteeringPointType"),
+    "SteeringResponse": ("steering", "SteeringResponse"),
+}
 
 __all__ = [
     # Core (SPEC-12.02)
@@ -80,3 +56,16 @@ __all__ = [
     "SteeringPointType",
     "SteeringResponse",
 ]
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(name)
+    module, symbol = _EXPORTS[name]
+    value = getattr(import_module(f".{module}", __name__), symbol)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
