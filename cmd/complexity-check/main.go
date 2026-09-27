@@ -15,12 +15,12 @@ func main() {
 	if err != nil {
 		hookio.Debug("Failed to read input: %v", err)
 		// Fail forward - approve and continue rather than blocking
-		hookio.Approve("")
+		hookio.WriteOutput(&hookio.HookOutput{})
 		return
 	}
 
 	if os.Getenv("RLM_DISABLED") == "1" {
-		hookio.Approve("")
+		hookio.WriteOutput(&hookio.HookOutput{})
 		return
 	}
 
@@ -30,14 +30,14 @@ func main() {
 	// Skip if trivial rigor
 	rigor := events.GetDPRigor()
 	if rigor == "trivial" {
-		hookio.Approve("")
+		hookio.WriteOutput(&hookio.HookOutput{})
 		return
 	}
 
 	// Fast-path bypass for trivial prompts
 	if classify.IsFastPath(prompt) {
 		hookio.Debug("Fast-path bypass")
-		hookio.Approve("")
+		hookio.WriteOutput(&hookio.HookOutput{})
 		return
 	}
 
@@ -49,7 +49,7 @@ func main() {
 	if activate {
 		msg := fmt.Sprintf("[RLM %s mode: %s]", mode, reason)
 		hookio.Debug("Activating: %s", msg)
-		hookio.Approve(msg)
+		hookio.PromptContext(msg)
 		events.Emit(map[string]any{
 			"type":     "rlm_activation_suggested",
 			"source":   "rlm-claude-code",
@@ -59,6 +59,6 @@ func main() {
 		}, "rlm-claude-code")
 	} else {
 		hookio.Debug("No activation: %s", reason)
-		hookio.Approve("")
+		hookio.WriteOutput(&hookio.HookOutput{})
 	}
 }

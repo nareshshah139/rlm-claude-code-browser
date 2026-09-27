@@ -1,58 +1,18 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/hook-dispatch.sh\" session-init",
-            "timeout": 10000,
-            "description": "Initialize RLM environment via Go binary (venv bootstrap, DP phase awareness)"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/hook-dispatch.sh\" complexity-check",
-            "timeout": 3000,
-            "blocking": false,
-            "description": "Classify prompt complexity for RLM activation"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [],
-    "PostToolUse": [],
-    "PreCompact": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Before compaction, ensure any active RLM context (trajectory, memory state, orchestration state) has been externalized. If RLM is active, save trajectory with `/rlm save`.",
-            "description": "Externalize RLM context before compaction"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/hook-dispatch.sh\" trajectory-save",
-            "timeout": 5000,
-            "description": "Save RLM trajectory on session end via Go binary"
-          }
-        ]
-      }
-    ]
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rlm-context/scripts/rlm.py\" hook SessionStart",
+        "timeout": 10
+      }]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rlm-context/scripts/rlm.py\" hook UserPromptSubmit",
+        "timeout": 3
+      }]
+    }]
   }
 }

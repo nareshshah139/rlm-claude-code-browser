@@ -1,388 +1,290 @@
-"""
-RLM-Claude-Code: Recursive Language Model integration for Claude Code.
+"""Public API, loaded on demand so browser/portable tools need no Rust runtime."""
 
-Transform Claude Code into an RLM agent for unbounded context handling
-and improved reasoning via REPL-based context decomposition.
+from importlib import import_module
 
-Implements intelligent orchestration with:
-- Automatic complexity-based RLM activation
-- Claude-powered orchestration decisions
-- Strategy learning from successful trajectories
-- User-configurable preferences and budgets
-"""
+__version__ = "0.9.0"
 
-__version__ = "0.7.4"
+_EXPORTS = {
+    "AutoActivator": (".auto_activation", "AutoActivator"),
+    "check_auto_activation": (".auto_activation", "check_auto_activation"),
+    "CircuitBreaker": (".circuit_breaker", "CircuitBreaker"),
+    "CircuitBreakerConfig": (".circuit_breaker", "CircuitBreakerConfig"),
+    "CircuitBreakerMetrics": (".circuit_breaker", "CircuitBreakerMetrics"),
+    "CircuitState": (".circuit_breaker", "CircuitState"),
+    "FailureRecord": (".circuit_breaker", "FailureRecord"),
+    "FallbackResult": (".circuit_breaker", "FallbackResult"),
+    "RecoveryTest": (".circuit_breaker", "RecoveryTest"),
+    "TierCircuitBreaker": (".circuit_breaker", "TierCircuitBreaker"),
+    "should_activate_rlm": (".complexity_classifier", "should_activate_rlm"),
+    "AllocationReasoning": (".compute_allocation", "AllocationReasoning"),
+    "ComputeAllocation": (".compute_allocation", "ComputeAllocation"),
+    "ComputeAllocator": (".compute_allocation", "ComputeAllocator"),
+    "DifficultyEstimate": (".compute_allocation", "DifficultyEstimate"),
+    "ModelTier": (".compute_allocation", "ModelTier"),
+    "TaskType": (".compute_allocation", "TaskType"),
+    "ConfidenceEstimator": (".confidence_synthesis", "ConfidenceEstimator"),
+    "ConfidenceFlags": (".confidence_synthesis", "ConfidenceFlags"),
+    "RecursiveResult": (".confidence_synthesis", "RecursiveResult"),
+    "SynthesisResult": (".confidence_synthesis", "SynthesisResult"),
+    "SynthesisStrategy": (".confidence_synthesis", "SynthesisStrategy"),
+    "WeightedSynthesizer": (".confidence_synthesis", "WeightedSynthesizer"),
+    "AbstractiveCompressor": (".context_compression", "AbstractiveCompressor"),
+    "AutoCompressor": (".context_compression", "AutoCompressor"),
+    "CompressionConfig": (".context_compression", "CompressionConfig"),
+    "CompressionMetrics": (".context_compression", "CompressionMetrics"),
+    "CompressionResult": (".context_compression", "CompressionResult"),
+    "CompressionStage": (".context_compression", "CompressionStage"),
+    "ContextCompressor": (".context_compression", "ContextCompressor"),
+    "ExtractiveCompressor": (".context_compression", "ExtractiveCompressor"),
+    "KeyInfoPreserver": (".context_compression", "KeyInfoPreserver"),
+    "RelevanceScorer": (".context_compression", "RelevanceScorer"),
+    "TwoStageCompressor": (".context_compression", "TwoStageCompressor"),
+    "CodeTaskEnricher": (".context_enrichment", "CodeTaskEnricher"),
+    "ContextEnricher": (".context_enrichment", "ContextEnricher"),
+    "DebugTaskEnricher": (".context_enrichment", "DebugTaskEnricher"),
+    "EnrichmentConfig": (".context_enrichment", "EnrichmentConfig"),
+    "EnrichmentResult": (".context_enrichment", "EnrichmentResult"),
+    "EnrichmentStrategy": (".context_enrichment", "EnrichmentStrategy"),
+    "IntentClassifier": (".context_enrichment", "IntentClassifier"),
+    "QueryIntent": (".context_enrichment", "QueryIntent"),
+    "ContextIndex": (".context_index", "ContextIndex"),
+    "FileIndex": (".context_index", "FileIndex"),
+    "IndexStats": (".context_index", "IndexStats"),
+    "LazyContext": (".context_manager", "LazyContext"),
+    "LazyContextConfig": (".context_manager", "LazyContextConfig"),
+    "LazyContextVariable": (".context_manager", "LazyContextVariable"),
+    "LazyFileLoader": (".context_manager", "LazyFileLoader"),
+    "create_lazy_context": (".context_manager", "create_lazy_context"),
+    "externalize_context": (".context_manager", "externalize_context"),
+    "ContinuousLearner": (".continuous_learning", "ContinuousLearner"),
+    "ExecutionOutcome": (".continuous_learning", "ExecutionOutcome"),
+    "LearnerConfig": (".continuous_learning", "LearnerConfig"),
+    "LearnerState": (".continuous_learning", "LearnerState"),
+    "LearningSignal": (".continuous_learning", "LearningSignal"),
+    "MetaLearner": (".continuous_learning", "MetaLearner"),
+    "OutcomeRecorder": (".continuous_learning", "OutcomeRecorder"),
+    "PredictionRecord": (".continuous_learning", "PredictionRecord"),
+    "SignalExtractor": (".continuous_learning", "SignalExtractor"),
+    "SignalType": (".continuous_learning", "SignalType"),
+    "AccessRecord": (".cross_session_promotion", "AccessRecord"),
+    "CrossSessionPromoter": (".cross_session_promotion", "CrossSessionPromoter"),
+    "CrossSessionTracker": (".cross_session_promotion", "CrossSessionTracker"),
+    "PromotionCandidate": (".cross_session_promotion", "PromotionCandidate"),
+    "PromotionConfig": (".cross_session_promotion", "PromotionConfig"),
+    "PromotionCriteria": (".cross_session_promotion", "PromotionCriteria"),
+    "PromotionDecision": (".cross_session_promotion", "PromotionDecision"),
+    "PromotionLog": (".cross_session_promotion", "PromotionLog"),
+    "PromotionReason": (".cross_session_promotion", "PromotionReason"),
+    "EmbeddingConfig": (".embedding_retrieval", "EmbeddingConfig"),
+    "EmbeddingProvider": (".embedding_retrieval", "EmbeddingProvider"),
+    "EmbeddingStore": (".embedding_retrieval", "EmbeddingStore"),
+    "HybridRetriever": (".embedding_retrieval", "HybridRetriever"),
+    "HybridSearchResult": (".embedding_retrieval", "HybridSearchResult"),
+    "MockEmbeddingProvider": (".embedding_retrieval", "MockEmbeddingProvider"),
+    "AdaptiveDepthRecommendation": (".enhanced_budget", "AdaptiveDepthRecommendation"),
+    "BudgetAlert": (".enhanced_budget", "BudgetAlert"),
+    "BudgetLimits": (".enhanced_budget", "BudgetLimits"),
+    "BurnRateAlert": (".enhanced_budget", "BurnRateAlert"),
+    "BurnRateMetrics": (".enhanced_budget", "BurnRateMetrics"),
+    "CostSample": (".enhanced_budget", "CostSample"),
+    "DepthBudgetWarning": (".enhanced_budget", "DepthBudgetWarning"),
+    "EnhancedBudgetMetrics": (".enhanced_budget", "EnhancedBudgetMetrics"),
+    "EnhancedBudgetTracker": (".enhanced_budget", "EnhancedBudgetTracker"),
+    "AuditResult": (".epistemic", "AuditResult"),
+    "BatchAuditResult": (".epistemic", "BatchAuditResult"),
+    "ClaimExtractor": (".epistemic", "ClaimExtractor"),
+    "ClaimVerification": (".epistemic", "ClaimVerification"),
+    "EpistemicGap": (".epistemic", "EpistemicGap"),
+    "EvidenceAuditor": (".epistemic", "EvidenceAuditor"),
+    "ExtractedClaim": (".epistemic", "ExtractedClaim"),
+    "ExtractionResult": (".epistemic", "ExtractionResult"),
+    "FlagReason": (".epistemic", "FlagReason"),
+    "GapType": (".epistemic", "GapType"),
+    "HallucinationReport": (".epistemic", "HallucinationReport"),
+    "OnFailureAction": (".epistemic", "OnFailureAction"),
+    "VerificationConfig": (".epistemic", "VerificationConfig"),
+    "VerificationMode": (".epistemic", "VerificationMode"),
+    "compute_evidence_support": (".epistemic", "compute_evidence_support"),
+    "extract_evidence_references": (".epistemic", "extract_evidence_references"),
+    "CheckResult": (".execution_guarantees", "CheckResult"),
+    "ExecutionGuarantees": (".execution_guarantees", "ExecutionGuarantees"),
+    "GracefulDegradationPlan": (".execution_guarantees", "GracefulDegradationPlan"),
+    "GuaranteeChecker": (".execution_guarantees", "GuaranteeChecker"),
+    "GuaranteeViolation": (".execution_guarantees", "GuaranteeViolation"),
+    "ViolationType": (".execution_guarantees", "ViolationType"),
+    "AutoCorrector": (".formal_verification", "AutoCorrector"),
+    "CodeChange": (".formal_verification", "CodeChange"),
+    "Constraint": (".formal_verification", "Constraint"),
+    "ConstraintType": (".formal_verification", "ConstraintType"),
+    "CorrectionAttempt": (".formal_verification", "CorrectionAttempt"),
+    "CorrectionResult": (".formal_verification", "CorrectionResult"),
+    "PostconditionGenerator": (".formal_verification", "PostconditionGenerator"),
+    "PreconditionGenerator": (".formal_verification", "PreconditionGenerator"),
+    "RefactoringPostconditions": (".formal_verification", "RefactoringPostconditions"),
+    "VerificationChain": (".formal_verification", "VerificationChain"),
+    "VerificationResult": (".formal_verification", "VerificationResult"),
+    "VerificationStatus": (".formal_verification", "VerificationStatus"),
+    "Verifier": (".formal_verification", "Verifier"),
+    "ActionNode": (".lats_orchestration", "ActionNode"),
+    "LATSConfig": (".lats_orchestration", "LATSConfig"),
+    "LATSOrchestrator": (".lats_orchestration", "LATSOrchestrator"),
+    "LATSPhase": (".lats_orchestration", "LATSPhase"),
+    "ToolCapability": (".lats_orchestration", "ToolCapability"),
+    "ToolCapabilityMatrix": (".lats_orchestration", "ToolCapabilityMatrix"),
+    "ToolPlan": (".lats_orchestration", "ToolPlan"),
+    "compute_ucb1": (".lats_orchestration", "compute_ucb1"),
+    "CascadingRouter": (".learned_routing", "CascadingRouter"),
+    "DifficultyEstimator": (".learned_routing", "DifficultyEstimator"),
+    "LearnedRouter": (".learned_routing", "LearnedRouter"),
+    "ModelProfile": (".learned_routing", "ModelProfile"),
+    "OutcomeRecord": (".learned_routing", "OutcomeRecord"),
+    "QueryFeatures": (".learned_routing", "QueryFeatures"),
+    "RouterConfig": (".learned_routing", "RouterConfig"),
+    "RoutingDecision": (".learned_routing", "RoutingDecision"),
+    "RECOMMENDED_CONFIGS": (".local_orchestrator", "RECOMMENDED_CONFIGS"),
+    "LocalModelConfig": (".local_orchestrator", "LocalModelConfig"),
+    "LocalOrchestrator": (".local_orchestrator", "LocalOrchestrator"),
+    "Edge": (".memory_backend", "Edge"),
+    "EdgeType": (".memory_backend", "EdgeType"),
+    "InMemoryBackend": (".memory_backend", "InMemoryBackend"),
+    "MemoryBackend": (".memory_backend", "MemoryBackend"),
+    "MemoryBackendConfig": (".memory_backend", "MemoryBackendConfig"),
+    "MemoryBackendType": (".memory_backend", "MemoryBackendType"),
+    "MemoryMigrator": (".memory_backend", "MemoryMigrator"),
+    "MigrationStats": (".memory_backend", "MigrationStats"),
+    "NodeType": (".memory_backend", "NodeType"),
+    "SQLiteBackend": (".memory_backend", "SQLiteBackend"),
+    "create_backend": (".memory_backend", "create_backend"),
+    "ConsolidationResult": (".memory_evolution", "ConsolidationResult"),
+    "DecayResult": (".memory_evolution", "DecayResult"),
+    "MemoryEvolution": (".memory_evolution", "MemoryEvolution"),
+    "PromotionResult": (".memory_evolution", "PromotionResult"),
+    "ConfidenceUpdate": (".memory_store", "ConfidenceUpdate"),
+    "Hyperedge": (".memory_store", "Hyperedge"),
+    "MemoryStore": (".memory_store", "MemoryStore"),
+    "Node": (".memory_store", "Node"),
+    "SearchResult": (".memory_store", "SearchResult"),
+    "LoggerConfig": (".orchestration_logger", "LoggerConfig"),
+    "OrchestrationDecisionLog": (".orchestration_logger", "OrchestrationDecisionLog"),
+    "OrchestrationLogger": (".orchestration_logger", "OrchestrationLogger"),
+    "TrainingDataExporter": (".orchestration_logger", "TrainingDataExporter"),
+    "get_logger": (".orchestration_logger", "get_logger"),
+    "set_logger": (".orchestration_logger", "set_logger"),
+    "ExecutionMode": (".orchestration_schema", "ExecutionMode"),
+    "OrchestrationPlan": (".orchestration_schema", "OrchestrationPlan"),
+    "ToolAccessLevel": (".orchestration_schema", "ToolAccessLevel"),
+    "HeuristicAccuracy": (".orchestration_telemetry", "HeuristicAccuracy"),
+    "HeuristicOutcome": (".orchestration_telemetry", "HeuristicOutcome"),
+    "OrchestrationTelemetry": (".orchestration_telemetry", "OrchestrationTelemetry"),
+    "TelemetryConfig": (".orchestration_telemetry", "TelemetryConfig"),
+    "TelemetryDecisionLog": (".orchestration_telemetry", "TelemetryDecisionLog"),
+    "TelemetryReport": (".orchestration_telemetry", "TelemetryReport"),
+    "AsyncExecutor": (".orchestrator", "AsyncExecutor"),
+    "AsyncRLMOrchestrator": (".orchestrator", "AsyncRLMOrchestrator"),
+    "AutoSteeringPolicy": (".orchestrator", "AutoSteeringPolicy"),
+    "BudgetChecker": (".orchestrator", "BudgetChecker"),
+    "CheckpointingOrchestrator": (".orchestrator", "CheckpointingOrchestrator"),
+    "ExecutionResult": (".orchestrator", "ExecutionResult"),
+    "IntelligentOrchestrator": (".orchestrator", "IntelligentOrchestrator"),
+    "InteractiveOrchestrator": (".orchestrator", "InteractiveOrchestrator"),
+    "OrchestrationState": (".orchestrator", "OrchestrationState"),
+    "OrchestratorConfig": (".orchestrator", "OrchestratorConfig"),
+    "PartialFailureResult": (".orchestrator", "PartialFailureResult"),
+    "RLMCheckpoint": (".orchestrator", "RLMCheckpoint"),
+    "RLMOrchestrator": (".orchestrator", "RLMOrchestrator"),
+    "SpeculativeExecution": (".orchestrator", "SpeculativeExecution"),
+    "SpeculativeResult": (".orchestrator", "SpeculativeResult"),
+    "SteeringDecision": (".orchestrator", "SteeringDecision"),
+    "SteeringPoint": (".orchestrator", "SteeringPoint"),
+    "ComputationAdvisor": (".proactive_computation", "ComputationAdvisor"),
+    "ComputationHelper": (".proactive_computation", "ComputationHelper"),
+    "ComputationSuggestion": (".proactive_computation", "ComputationSuggestion"),
+    "ComputationTrigger": (".proactive_computation", "ComputationTrigger"),
+    "DetectionResult": (".proactive_computation", "DetectionResult"),
+    "CancellationToken": (".progress", "CancellationToken"),
+    "CancelledException": (".progress", "CancelledException"),
+    "ConsoleProgressCallback": (".progress", "ConsoleProgressCallback"),
+    "NullProgressCallback": (".progress", "NullProgressCallback"),
+    "OperationType": (".progress", "OperationType"),
+    "ProgressCallback": (".progress", "ProgressCallback"),
+    "ProgressContext": (".progress", "ProgressContext"),
+    "ProgressStats": (".progress", "ProgressStats"),
+    "ProgressUpdate": (".progress", "ProgressUpdate"),
+    "ThrottledProgressCallback": (".progress", "ThrottledProgressCallback"),
+    "create_progress_context": (".progress", "create_progress_context"),
+    "CostAttribution": (".progressive_trajectory", "CostAttribution"),
+    "CostBreakdown": (".progressive_trajectory", "CostBreakdown"),
+    "ProgressiveTrajectory": (".progressive_trajectory", "ProgressiveTrajectory"),
+    "render_cost_breakdown": (".progressive_trajectory", "render_cost_breakdown"),
+    "render_detail": (".progressive_trajectory", "render_detail"),
+    "render_overview": (".progressive_trajectory", "render_overview"),
+    "render_summary": (".progressive_trajectory", "render_summary"),
+    "CacheablePrompt": (".prompt_caching", "CacheablePrompt"),
+    "CacheMetrics": (".prompt_caching", "CacheMetrics"),
+    "CachePrefix": (".prompt_caching", "CachePrefix"),
+    "CachePrefixRegistry": (".prompt_caching", "CachePrefixRegistry"),
+    "PromptCacheManager": (".prompt_caching", "PromptCacheManager"),
+    "build_cacheable_prompt": (".prompt_caching", "build_cacheable_prompt"),
+    "DecisionNode": (".reasoning_traces", "DecisionNode"),
+    "DecisionTree": (".reasoning_traces", "DecisionTree"),
+    "EvidenceScore": (".reasoning_traces", "EvidenceScore"),
+    "ReasoningTraces": (".reasoning_traces", "ReasoningTraces"),
+    "RLMEnvironment": (".repl_environment", "RLMEnvironment"),
+    "BuiltinPlugins": (".repl_plugin", "BuiltinPlugins"),
+    "PluginConflictError": (".repl_plugin", "PluginConflictError"),
+    "PluginRegistry": (".repl_plugin", "PluginRegistry"),
+    "REPLPlugin": (".repl_plugin", "REPLPlugin"),
+    "REPLPluginManager": (".repl_plugin", "REPLPluginManager"),
+    "PipelineConfig": (".smart_pipeline", "PipelineConfig"),
+    "PipelineResult": (".smart_pipeline", "PipelineResult"),
+    "PipelineStage": (".smart_pipeline", "PipelineStage"),
+    "PipelineTelemetry": (".smart_pipeline", "PipelineTelemetry"),
+    "SmartPipeline": (".smart_pipeline", "SmartPipeline"),
+    "StageResult": (".smart_pipeline", "StageResult"),
+    "StageTelemetry": (".smart_pipeline", "StageTelemetry"),
+    "StrategyCache": (".strategy_cache", "StrategyCache"),
+    "Chunk": (".tokenization", "Chunk"),
+    "ChunkingConfig": (".tokenization", "ChunkingConfig"),
+    "chunk_by_tokens": (".tokenization", "chunk_by_tokens"),
+    "count_tokens": (".tokenization", "count_tokens"),
+    "detect_language": (".tokenization", "detect_language"),
+    "find_semantic_boundaries": (".tokenization", "find_semantic_boundaries"),
+    "partition_content_by_tokens": (".tokenization", "partition_content_by_tokens"),
+    "token_aware_chunk": (".tokenization", "token_aware_chunk"),
+    "ToolBridge": (".tool_bridge", "ToolBridge"),
+    "ToolPermissions": (".tool_bridge", "ToolPermissions"),
+    "TrajectoryEvent": (".trajectory", "TrajectoryEvent"),
+    "TrajectoryRenderer": (".trajectory", "TrajectoryRenderer"),
+    "StrategyType": (".trajectory_analysis", "StrategyType"),
+    "TrajectoryAnalyzer": (".trajectory_analysis", "TrajectoryAnalyzer"),
+    "SearchStrategy": (".tree_of_thoughts", "SearchStrategy"),
+    "ThoughtNode": (".tree_of_thoughts", "ThoughtNode"),
+    "ThoughtTree": (".tree_of_thoughts", "ThoughtTree"),
+    "ToTConfig": (".tree_of_thoughts", "ToTConfig"),
+    "SessionContext": (".types", "SessionContext"),
+    "ClassifierAdjustment": (".user_corrections", "ClassifierAdjustment"),
+    "Correction": (".user_corrections", "Correction"),
+    "CorrectionAnalyzer": (".user_corrections", "CorrectionAnalyzer"),
+    "CorrectionRecorder": (".user_corrections", "CorrectionRecorder"),
+    "CorrectionType": (".user_corrections", "CorrectionType"),
+    "UserCorrectionLearner": (".user_corrections", "UserCorrectionLearner"),
+    "PreferencesManager": (".user_preferences", "PreferencesManager"),
+    "UserPreferences": (".user_preferences", "UserPreferences"),
+}
 
-# Async execution (SPEC-08.01-08.06) - from orchestrator package
-# Core orchestration
-from .auto_activation import AutoActivator, check_auto_activation
 
-# Circuit breaker (SPEC-10.20-10.26)
-from .circuit_breaker import (
-    CircuitBreaker,
-    CircuitBreakerConfig,
-    CircuitBreakerMetrics,
-    CircuitState,
-    FailureRecord,
-    FallbackResult,
-    RecoveryTest,
-    TierCircuitBreaker,
-)
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module, symbol = _EXPORTS[name]
+    value = getattr(import_module(module, __name__), symbol)
+    globals()[name] = value
+    return value
 
-# Complexity and routing
-from .complexity_classifier import should_activate_rlm
 
-# Compute allocation (SPEC-07.10-07.15)
-from .compute_allocation import (
-    AllocationReasoning,
-    ComputeAllocation,
-    ComputeAllocator,
-    DifficultyEstimate,
-    ModelTier,
-    TaskType,
-)
+def __dir__():
+    return sorted(set(globals()) | set(_EXPORTS))
 
-# Confidence-weighted synthesis (SPEC-10.01-10.06)
-from .confidence_synthesis import (
-    ConfidenceEstimator,
-    ConfidenceFlags,
-    RecursiveResult,
-    SynthesisResult,
-    SynthesisStrategy,
-    WeightedSynthesizer,
-)
-
-# Context compression (SPEC-08.20-08.25)
-from .context_compression import (
-    AbstractiveCompressor,
-    AutoCompressor,
-    CompressionConfig,
-    CompressionMetrics,
-    CompressionResult,
-    CompressionStage,
-    ContextCompressor,
-    ExtractiveCompressor,
-    KeyInfoPreserver,
-    RelevanceScorer,
-    TwoStageCompressor,
-)
-
-# Context enrichment (SPEC-06.30-06.35)
-from .context_enrichment import (
-    CodeTaskEnricher,
-    ContextEnricher,
-    DebugTaskEnricher,
-    EnrichmentConfig,
-    EnrichmentResult,
-    EnrichmentStrategy,
-    IntentClassifier,
-    QueryIntent,
-)
-
-# Context indexing (SPEC-01.04 - Phase 4)
-from .context_index import ContextIndex, FileIndex, IndexStats
-
-# Context and REPL
-from .context_manager import (
-    LazyContext,
-    LazyContextConfig,
-    LazyContextVariable,
-    LazyFileLoader,
-    create_lazy_context,
-    externalize_context,
-)
-
-# Continuous learning (SPEC-06.40-06.45)
-from .continuous_learning import (
-    ContinuousLearner,
-    ExecutionOutcome,
-    LearnerConfig,
-    LearnerState,
-    LearningSignal,
-    MetaLearner,
-    OutcomeRecorder,
-    PredictionRecord,
-    SignalExtractor,
-    SignalType,
-)
-
-# Cross-session memory promotion (SPEC-09.10-09.15)
-from .cross_session_promotion import (
-    AccessRecord,
-    CrossSessionPromoter,
-    CrossSessionTracker,
-    PromotionCandidate,
-    PromotionConfig,
-    PromotionCriteria,
-    PromotionDecision,
-    PromotionLog,
-    PromotionReason,
-)
-
-# Embedding retrieval (SPEC-09.01-09.07)
-from .embedding_retrieval import (
-    EmbeddingConfig,
-    EmbeddingProvider,
-    EmbeddingStore,
-    HybridRetriever,
-    HybridSearchResult,
-    MockEmbeddingProvider,
-)
-
-# Enhanced budget tracking (SPEC-05)
-from .enhanced_budget import (
-    AdaptiveDepthRecommendation,
-    BudgetAlert,
-    BudgetLimits,
-    BurnRateAlert,
-    BurnRateMetrics,
-    CostSample,
-    DepthBudgetWarning,
-    EnhancedBudgetMetrics,
-    EnhancedBudgetTracker,
-)
-
-# Epistemic verification (SPEC-16)
-from .epistemic import (
-    AuditResult,
-    BatchAuditResult,
-    ClaimExtractor,
-    ClaimVerification,
-    EpistemicGap,
-    EvidenceAuditor,
-    ExtractedClaim,
-    ExtractionResult,
-    FlagReason,
-    GapType,
-    HallucinationReport,
-    OnFailureAction,
-    VerificationConfig,
-    VerificationMode,
-    compute_evidence_support,
-    extract_evidence_references,
-)
-
-# Execution guarantees (SPEC-10.10-10.15)
-from .execution_guarantees import (
-    CheckResult,
-    ExecutionGuarantees,
-    GracefulDegradationPlan,
-    GuaranteeChecker,
-    GuaranteeViolation,
-    ViolationType,
-)
-
-# Formal verification (SPEC-07.20-07.25)
-from .formal_verification import (
-    AutoCorrector,
-    CodeChange,
-    Constraint,
-    ConstraintType,
-    CorrectionAttempt,
-    CorrectionResult,
-    PostconditionGenerator,
-    PreconditionGenerator,
-    RefactoringPostconditions,
-    VerificationChain,
-    VerificationResult,
-    VerificationStatus,
-    Verifier,
-)
-
-# LATS orchestration (SPEC-06.10-06.15)
-from .lats_orchestration import (
-    ActionNode,
-    LATSConfig,
-    LATSOrchestrator,
-    LATSPhase,
-    ToolCapability,
-    ToolCapabilityMatrix,
-    ToolPlan,
-    compute_ucb1,
-)
-
-# Learned routing (SPEC-06.20-06.26)
-from .learned_routing import (
-    CascadingRouter,
-    DifficultyEstimator,
-    LearnedRouter,
-    ModelProfile,
-    OutcomeRecord,
-    QueryFeatures,
-    RouterConfig,
-    RoutingDecision,
-)
-from .local_orchestrator import RECOMMENDED_CONFIGS, LocalModelConfig, LocalOrchestrator
-
-# Memory backend abstraction (SPEC-12.20-12.25)
-from .memory_backend import (
-    Edge,
-    EdgeType,
-    InMemoryBackend,
-    MemoryBackend,
-    MemoryBackendConfig,
-    MemoryBackendType,
-    MemoryMigrator,
-    MigrationStats,
-    NodeType,
-    SQLiteBackend,
-    create_backend,
-)
-from .memory_evolution import ConsolidationResult, DecayResult, MemoryEvolution, PromotionResult
-
-# Memory system (SPEC-02, SPEC-03)
-from .memory_store import ConfidenceUpdate, Hyperedge, MemoryStore, Node, SearchResult
-from .orchestration_logger import (
-    LoggerConfig,
-    OrchestrationDecisionLog,
-    OrchestrationLogger,
-    TrainingDataExporter,
-    get_logger,
-    set_logger,
-)
-from .orchestration_schema import ExecutionMode, OrchestrationPlan, ToolAccessLevel
-
-# Orchestration telemetry (Feature 3e0.6)
-from .orchestration_telemetry import (
-    HeuristicAccuracy,
-    HeuristicOutcome,
-    OrchestrationTelemetry,
-    TelemetryConfig,
-    TelemetryDecisionLog,
-    TelemetryReport,
-)
-
-# Intelligent orchestration - from orchestrator package
-# Core orchestration - from orchestrator package
-# Checkpointing and steering - from orchestrator package (SPEC-12.05-12.06)
-from .orchestrator import (
-    AsyncExecutor,
-    AsyncRLMOrchestrator,
-    AutoSteeringPolicy,
-    BudgetChecker,
-    CheckpointingOrchestrator,
-    ExecutionResult,
-    IntelligentOrchestrator,
-    InteractiveOrchestrator,
-    OrchestrationState,
-    OrchestratorConfig,
-    PartialFailureResult,
-    RLMCheckpoint,
-    RLMOrchestrator,
-    SpeculativeExecution,
-    SpeculativeResult,
-    SteeringDecision,
-    SteeringPoint,
-)
-
-# Proactive computation (SPEC-06.01-06.05)
-from .proactive_computation import (
-    ComputationAdvisor,
-    ComputationHelper,
-    ComputationSuggestion,
-    ComputationTrigger,
-    DetectionResult,
-)
-
-# Progress reporting (SPEC-01.05 - Phase 4)
-from .progress import (
-    CancellationToken,
-    CancelledException,
-    ConsoleProgressCallback,
-    NullProgressCallback,
-    OperationType,
-    ProgressCallback,
-    ProgressContext,
-    ProgressStats,
-    ProgressUpdate,
-    ThrottledProgressCallback,
-    create_progress_context,
-)
-
-# Progressive trajectory (SPEC-11.01-11.06)
-from .progressive_trajectory import (
-    CostAttribution,
-    CostBreakdown,
-    ProgressiveTrajectory,
-    render_cost_breakdown,
-    render_detail,
-    render_overview,
-    render_summary,
-)
-
-# Prompt caching (SPEC-08.10-08.15)
-from .prompt_caching import (
-    CacheablePrompt,
-    CacheMetrics,
-    CachePrefix,
-    CachePrefixRegistry,
-    PromptCacheManager,
-    build_cacheable_prompt,
-)
-
-# Reasoning traces (SPEC-04)
-from .reasoning_traces import DecisionNode, DecisionTree, EvidenceScore, ReasoningTraces
-from .repl_environment import RLMEnvironment
-
-# REPL plugin system (SPEC-12.10-12.16)
-from .repl_plugin import (
-    BuiltinPlugins,
-    PluginConflictError,
-    PluginRegistry,
-    REPLPlugin,
-    REPLPluginManager,
-)
-
-# Smart RLM pipeline (SPEC-06.50-06.53)
-from .smart_pipeline import (
-    PipelineConfig,
-    PipelineResult,
-    PipelineStage,
-    PipelineTelemetry,
-    SmartPipeline,
-    StageResult,
-    StageTelemetry,
-)
-from .strategy_cache import StrategyCache
-
-# Tokenization (SPEC-01.01 - Phase 4)
-from .tokenization import (
-    Chunk,
-    ChunkingConfig,
-    chunk_by_tokens,
-    count_tokens,
-    detect_language,
-    find_semantic_boundaries,
-    partition_content_by_tokens,
-    token_aware_chunk,
-)
-from .tool_bridge import ToolBridge, ToolPermissions
-
-# Trajectory and analysis
-from .trajectory import TrajectoryEvent, TrajectoryRenderer
-from .trajectory_analysis import StrategyType, TrajectoryAnalyzer
-
-# Tree of Thoughts (SPEC-07.01-07.07)
-from .tree_of_thoughts import (
-    SearchStrategy,
-    ThoughtNode,
-    ThoughtTree,
-    ToTConfig,
-)
-from .types import SessionContext
-
-# User corrections (SPEC-11.20-11.25)
-from .user_corrections import (
-    ClassifierAdjustment,
-    Correction,
-    CorrectionAnalyzer,
-    CorrectionRecorder,
-    CorrectionType,
-    UserCorrectionLearner,
-)
-
-# User preferences and tools
-from .user_preferences import PreferencesManager, UserPreferences
 
 __all__ = [
     # Async execution (SPEC-08.01-08.06)

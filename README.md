@@ -5,13 +5,46 @@
 > parallel, rendered in headless Chromium when needed, and read through your own logged-in
 > Chrome only for the pages that require it. See [Browser Use](#browser-use-v080).
 
-Transform Claude Code into a Recursive Language Model (RLM) agent with intelligent orchestration, unbounded context handling, persistent memory, and REPL-based decomposition.
+## Portable workflow (v0.9.0)
 
-**rlm-core integration**: This project bundles [rlm-core](https://github.com/rand/loop) as a required dependency, providing shared Rust-based implementations with [recurse](https://github.com/rand/recurse). rlm-core provides 10-50x faster pattern classification via PyO3 bindings. Pre-built wheels are available for common platforms.
+Use large collections of file, URL, and connector pointers in **Claude Desktop /
+Cowork, Codex Desktop, and Codex cloud**. The portable skill uses the host's own
+model and available native subagents. A dependency-free Python helper snapshots
+complete text, creates bounded work items, supports recursive splitting, and
+checks source coverage and exact quoted evidence. It needs Python 3.10+ and a
+writable task directory; no API key or Rust build.
+
+```bash
+# Check the portable runtime in this repository.
+python3 skills/rlm-context/scripts/rlm.py doctor
+
+# Build the Cowork and Codex plugin packages into a new directory.
+python3 scripts/build_portable.py --out dist/portable-0.9.0
+
+# Or install a self-contained skill in another Codex project.
+python3 scripts/install_portable.py --target /absolute/project/.agents/skills
+```
+
+Upload the Cowork package through Claude's custom plugin installer. In Codex cloud,
+commit the copied skill and add the `AGENTS.md` instruction from the
+[host setup guide](docs/portable-hosts.md). Explicitly ask: **“Use rlm-context to
+analyze these sources…”** Host skill selection and delegation remain model-driven;
+if subagents are unavailable or forbidden, the workflow runs sequentially and says so.
+Ordinary Claude Chat without code/filesystem tools cannot execute this helper.
+
+Full text stays on disk. Failed or truncated captures remain visible, and
+`status --require-complete` rejects incomplete coverage. This is not a guarantee
+of model reasoning accuracy or unlimited scale. See the guide for installation,
+capability limits, optional browser setup, and live-host acceptance checks.
+
+The original **API/REPL backend** under `src` is optional and separate. It retains
+its SDKs, API credentials, Python 3.12+ dependencies and compiled `rlm_core` from
+[rand/loop](https://github.com/rand/loop). `uv sync` is for that development stack;
+it is not needed for the portable workflow.
 
 ## What is RLM?
 
-RLM (Recursive Language Model) enables Claude to handle arbitrarily large contexts by decomposing complex tasks into smaller sub-queries. Instead of processing 500K tokens at once, RLM lets Claude:
+RLM (Recursive Language Model) processes contexts larger than a single model call by decomposing tasks into smaller sub-queries. Instead of processing 500K tokens at once, RLM lets Claude:
 
 - **Peek** at context structure before deep analysis
 - **Search** using patterns to narrow focus
@@ -19,7 +52,7 @@ RLM (Recursive Language Model) enables Claude to handle arbitrarily large contex
 - **Recurse** with sub-queries for verification
 - **Remember** facts and experiences across sessions
 
-This results in better accuracy on complex tasks while optimizing cost through intelligent model selection.
+Accuracy and cost depend on decomposition, source coverage, and the model; evaluate them on your own tasks.
 
 ---
 
@@ -45,8 +78,8 @@ Fetched text lands in `web[url]` (and on disk as markdown), ready for the usual 
 ```
 
 The command fetches in parallel, retries the hard pages headless, works any login-only pages
-through your browser, then fans the analysis out to parallel sub-agents and cites every claim.
-Under the hood it calls `scripts/rlm-web`:
+through your browser, then uses the portable skill to schedule bounded analysis and preserve citations.
+Parallel subagents depend on host capabilities and permissions. The browser CLI is also available:
 
 ```bash
 bash scripts/rlm-web --out .rlm/web/run fetch URL [URL ...]         # or --urls-file urls.txt

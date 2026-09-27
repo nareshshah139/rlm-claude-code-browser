@@ -13,13 +13,6 @@ PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
 HOOK_NAME="$1"
 
-# Bootstrap venv if missing (Claude Code expects .venv/bin/activate for Python plugins)
-if [ ! -d "$PLUGIN_ROOT/.venv" ] && [ -f "$PLUGIN_ROOT/pyproject.toml" ]; then
-    if command -v uv &> /dev/null; then
-        (cd "$PLUGIN_ROOT" && uv sync --quiet 2>/dev/null) || true
-    fi
-fi
-
 if [ -z "$HOOK_NAME" ]; then
     echo "Usage: $0 <hook-name>" >&2
     exit 1
@@ -75,6 +68,11 @@ if [ -x "$BINARY_DEV" ]; then
     exec "$BINARY_DEV"
 fi
 
+# Portable complexity fallback needs only Python's standard library.
+if [ "$HOOK_NAME" = "complexity-check" ]; then
+    exec python3 "$PLUGIN_ROOT/skills/rlm-context/scripts/rlm.py" hook UserPromptSubmit
+fi
+
 # Fallback to Python
 PYTHON_SCRIPT="${PLUGIN_ROOT}/scripts/${HOOK_NAME}.py"
 if [ -f "$PYTHON_SCRIPT" ]; then
@@ -97,5 +95,5 @@ if [ -f "$LEGACY_SCRIPT" ]; then
 fi
 
 # Nothing found - fail open silently to avoid hook error display
-echo '{"decision":"approve"}'
+echo '{}'
 exit 0

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.0 — Portable native-agent workflow
+
+- Add a self-contained skill, dependency-free context CLI, Cowork/Codex plugin
+  builders, and a project skill installer with an explicit cloud AGENTS.md path.
+- Snapshot complete UTF-8 sources, group by byte budget, recursively split work,
+  and validate submitted chunk coverage, hashes and quoted evidence in SQLite.
+- Keep acquisition failures and truncated pages visible; preserve browser text
+  by default in the CLI and batch URL lists beyond the per-call page limit.
+- Replace startup installation hooks with lightweight, correctly formatted
+  advisory context; use native delegation with a truthful sequential fallback.
+- Repair the optional API backend's child execute/observe loop, source clipping,
+  dataclass prompts, shared client/trajectory wiring, global call budgets,
+  asynchronous SDK calls, and the shadowed orchestrator CLI entry point.
+- Add portable installation, workflow, transport and REPL regression tests.
+
+
 ## [0.8.0] - 2026-09-24
 
 ### Added

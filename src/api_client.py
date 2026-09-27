@@ -10,6 +10,7 @@ Supports:
 
 from __future__ import annotations
 
+import inspect
 import os
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
@@ -144,7 +145,7 @@ class AnthropicClient(BaseLLMClient):
             raise ValueError(
                 "Anthropic API key required. Set ANTHROPIC_API_KEY environment variable."
             )
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
         self.cost_tracker = cost_tracker or get_cost_tracker()
 
     async def complete(
@@ -161,14 +162,17 @@ class AnthropicClient(BaseLLMClient):
         request_params: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
             "messages": messages,
         }
 
         if system:
             request_params["system"] = system
 
-        response = self.client.messages.create(**request_params)
+        if "temperature" in inspect.signature(self.client.messages.create).parameters:
+            request_params["temperature"] = temperature
+        elif temperature != 0.0:
+            raise ValueError("This Anthropic SDK no longer accepts temperature")
+        response = await self.client.messages.create(**request_params)
 
         content = ""
         for block in response.content:
@@ -205,7 +209,6 @@ class AnthropicClient(BaseLLMClient):
         request_params: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
             "messages": messages,
         }
 
@@ -215,11 +218,15 @@ class AnthropicClient(BaseLLMClient):
         input_tokens = 0
         output_tokens = 0
 
-        with self.client.messages.stream(**request_params) as stream:
-            for text in stream.text_stream:
+        if "temperature" in inspect.signature(self.client.messages.stream).parameters:
+            request_params["temperature"] = temperature
+        elif temperature != 0.0:
+            raise ValueError("This Anthropic SDK no longer accepts temperature")
+        async with self.client.messages.stream(**request_params) as stream:
+            async for text in stream.text_stream:
                 yield StreamChunk(text=text)
 
-            final_message = stream.get_final_message()
+            final_message = await stream.get_final_message()
             input_tokens = final_message.usage.input_tokens
             output_tokens = final_message.usage.output_tokens
 
@@ -249,7 +256,7 @@ class OpenAIClient(BaseLLMClient):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        self.client = openai.AsyncOpenAI(api_key=self.api_key)
         self.cost_tracker = cost_tracker or get_cost_tracker()
 
     async def complete(
@@ -271,14 +278,14 @@ class OpenAIClient(BaseLLMClient):
 
         # GPT-5.2+ uses max_completion_tokens instead of max_tokens
         if model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3"):
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=model,
                 messages=full_messages,
                 max_completion_tokens=max_tokens,
                 temperature=temperature,
             )
         else:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=model,
                 messages=full_messages,
                 max_tokens=max_tokens,
@@ -323,7 +330,7 @@ class OpenAIClient(BaseLLMClient):
 
         # GPT-5.2+ uses max_completion_tokens instead of max_tokens
         if model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3"):
-            stream = self.client.chat.completions.create(
+            stream = await self.client.chat.completions.create(
                 model=model,
                 messages=full_messages,
                 max_completion_tokens=max_tokens,
@@ -332,7 +339,7 @@ class OpenAIClient(BaseLLMClient):
                 stream_options={"include_usage": True},
             )
         else:
-            stream = self.client.chat.completions.create(
+            stream = await self.client.chat.completions.create(
                 model=model,
                 messages=full_messages,
                 max_tokens=max_tokens,
@@ -344,7 +351,7 @@ class OpenAIClient(BaseLLMClient):
         input_tokens = 0
         output_tokens = 0
 
-        for chunk in stream:
+        async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield StreamChunk(text=chunk.choices[0].delta.content)
             if chunk.usage:

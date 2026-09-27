@@ -2,6 +2,14 @@
 
 Transform Claude Code into a Recursive Language Model agent with intelligent orchestration, persistent memory, and REPL-based context decomposition.
 
+## Portable host workflow (v0.9)
+
+For large pointer collections, read `skills/rlm-context/SKILL.md` and follow it.
+It uses native model tools and a Python 3.10+ standard-library helper. See
+`docs/portable-hosts.md` for Cowork, Codex Desktop and cloud installation.
+Test this path with `python3 -m unittest discover -s tests/portable -v`.
+The quick start and architecture below describe the optional legacy API backend.
+
 ## Quick Start
 
 ```bash

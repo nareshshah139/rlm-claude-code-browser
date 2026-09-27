@@ -22,7 +22,7 @@ type HookInput struct {
 	ToolOutput json.RawMessage `json:"tool_output,omitempty"`
 
 	// User prompt specific
-	UserPrompt string `json:"user_prompt,omitempty"`
+	UserPrompt string `json:"prompt,omitempty"`
 }
 
 // HookOutput represents the JSON output to send back to Claude Code.
@@ -133,4 +133,11 @@ func ProjectDir() string {
 		return dir
 	}
 	return "."
+}
+
+// PromptContext injects advisory context using the UserPromptSubmit contract.
+func PromptContext(context string) {
+	WriteOutput(&HookOutput{HookSpecific: &HookSpecificOutput{
+		HookEventName: "UserPromptSubmit", AdditionalContext: context,
+	}})
 }

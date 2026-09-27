@@ -40,6 +40,36 @@ func TestReadInputMalformed(t *testing.T) {
 	}
 }
 
+func TestPromptSubmitInput(t *testing.T) {
+	var input HookInput
+	if err := json.Unmarshal([]byte(`{"prompt":"compare the documents"}`), &input); err != nil {
+		t.Fatal(err)
+	}
+	if input.UserPrompt != "compare the documents" {
+		t.Fatalf("UserPrompt = %q", input.UserPrompt)
+	}
+}
+
+func TestPromptContextOutput(t *testing.T) {
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	defer r.Close()
+	os.Stdout = w
+	PromptContext("use bounded context tasks")
+	w.Close()
+	os.Stdout = old
+	var parsed HookOutput
+	if err := json.NewDecoder(r).Decode(&parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Decision != "" || parsed.Reason != "" || parsed.HookSpecific == nil {
+		t.Fatal("Expected advisory hookSpecificOutput, not a decision")
+	}
+	if parsed.HookSpecific.HookEventName != "UserPromptSubmit" || parsed.HookSpecific.AdditionalContext != "use bounded context tasks" {
+		t.Fatalf("Unexpected hook output: %+v", parsed.HookSpecific)
+	}
+}
+
 func TestWriteOutput(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()

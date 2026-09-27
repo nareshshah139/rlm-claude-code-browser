@@ -23,13 +23,13 @@ def build_rlm_system_prompt(context: SessionContext, query: str) -> str:
         System prompt for RLM mode
     """
     n_messages = len(context.messages)
-    message_tokens = sum(len(m.get("content", "")) // 4 for m in context.messages)
+    message_tokens = sum(len(m.content) // 4 for m in context.messages)
 
     n_files = len(context.files)
     file_tokens = sum(len(content) // 4 for content in context.files.values())
 
     n_outputs = len(context.tool_outputs)
-    output_tokens = sum(len(str(o.get("content", ""))) // 4 for o in context.tool_outputs)
+    output_tokens = sum(len(str(o.content)) // 4 for o in context.tool_outputs)
 
     return f"""You are Claude Code operating in RLM (Recursive Language Model) mode. Your conversation context is stored in variables in a Python REPL environment.
 

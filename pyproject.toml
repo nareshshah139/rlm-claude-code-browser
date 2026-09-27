@@ -1,6 +1,6 @@
 [project]
 name = "rlm-claude-code"
-version = "0.8.0"
+version = "0.9.0"
 description = "Recursive Language Model integration for Claude Code"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -117,7 +117,7 @@ python-version = "3.12"
 
 [tool.ty.src]
 # Treat src as a first-party source root
-include = ["src"]
+include = ["src", "rlm_portable"]
 
 [tool.ty.rules]
 # Disable unresolved-import for now - ty has issues with relative imports in src layout
